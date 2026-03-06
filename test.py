@@ -7,27 +7,21 @@ English: I you he her she him we eat go to in school talk
 #super parameter
 Embedding_Depth = 512
 Multi_Head = 8
-w = ["这","是","到","的","和","一个","在","那个","有","我",
-            "它","为了","不","在…上","和…一起","他","作为","你","做","在",
-            "这个","但是","他的","被","来自","他们","我们","说","她的","她",
-            "或者","一个","将","我的","一个","全部","会","那里","他们的","什么",
-            "所以","向上","向外","如果","关于","谁","得到","哪个","去","我",
-            "什么时候","制作","能够","喜欢","时间","不","只是","他","知道","拿",
-            "人们","进入","年","你的","好的","一些","可以","他们","看见","其他",
-            "比","然后","现在","看","只","来","它的","在…之上","认为","也",
-            "回来","之后","使用","二","如何","我们的","工作","第一","很好","方式",
-            "甚至","新的","想要","因为","任何","这些","给","天","大多数","我们"," ","$", "$$"
-
-            "the","be","to","of","and","a","in","that","have","I",
-            "it","for","not","on","with","he","as","you","do","at",
-            "this","but","his","by","from","they","we","say","her","she",
-            "or","an","will","my","one","all","would","there","their","what",
-            "so","up","out","if","about","who","get","which","go","me",
-            "when","make","can","like","time","no","just","him","know","take",
-            "people","into","year","your","good","some","could","them","see","other",
-            "than","then","now","look","only","come","its","over","think","also",
-            "back","after","use","two","how","our","work","first","well","way",
-            "even","new","want","because","any","these","give","day","most","us"]
+w = [
+  "$", "&",
+  "I", "you", "he", "she", "we", "they", "it", "me", "us", "them", "her", "and",
+  "know", "like", "see", "want", "make", "take", "give", "use", "do", "can", "will",
+  "go", "come", "think", "be", "used", "by", "together", "should", "because", "is", "good", "results",
+  "learning", "English", "so", "that", "communicate", "how", "works", "before", "with", "for", "there", "this",
+  "我", "你", "他", "她", "我们", "他们", "它",
+  "知道", "喜欢", "看见", "想要", "制作", "拿", "给", "使用", "做", "可以", "会",
+  "去", "来", "认为", "是", "被", "一起", "应该", "因为", "很好", "结果", "正在", "学习",
+  "英语", "以便", "与", "交流", "把", "如果", "需要", "如何", "运作", "的", "所以", "工作",
+  "这个", "那里", "并",
+  # —— 以下为补上的缺失词（23 个） —— 
+  "help", "She", "wants", "to", "We", "They", "what", "You", "He", "if", "need", "work",
+  "而且", "用", "帮助", "看", "为", "在", "之前", "在做", "什么", "这", "和"
+]
 Word = len(w)
 
 import torch
@@ -118,18 +112,42 @@ class FFN(torch.nn.Module):
         #self.bias2 = torch.nn.Parameter(torch.tensor([0]))
         
     def forward(self, x):
-        x = torch.nn.functional.relu(x @ self.linear1) @ self.linear2 
+        x = torch.nn.functional.sigmoid(x @ self.linear1) @ self.linear2 
         return x
         
         
 #===============================================================================================================================================
 class my_dataset(torch.utils.data.Dataset):
     def __init__(self):
-        self.X = ["$","I","know","you"]
-        self.Y = ["$","我","知道","你"]
-    
+        self.X = [
+            ["$","I","know","you","and","I","will","help","you","with","this","&"],
+            ["$","I","see","you","and","I","will","help","you","with","this","&"],
+            ["$","She","wants","to","see","it","and","I","can","make","it","for","her","&"],
+            ["$","We","will","go","there","and","use","it","before","they","come","&"],
+            ["$","They","like","to","see","us","and","they","will","know","what","we","do","&"],
+            ["$","I","think","this","can","be","used","by","you","and","me","together","&"],
+            ["$","You","should","do","it","because","it","is","good","and","we","can","see","results","&"],
+            ["$","He","is","learning","English","so","that","he","can","use","it","to","communicate","with","them","&"],
+            ["$","We","know","it","and","we","will","give","it","to","them","if","they","need","it","&"],
+            ["$","They","want","to","make","it","and","they","can","see","how","it","works","&"],
+            ["$","I","know","you","and","you","know","me","so","we","can","work","together","&"]
+        ]
+
+        self.Y = [
+            ["$","我","知道","你","而且","我","会","用","这个","帮助","你","&"],
+            ["$","我","看见","你","而且","我","会","用","这个","帮助","你","&"],
+            ["$","她","想要","看","它","而且","我","可以","为","她","制作","它","&"],
+            ["$","我们","会","去","那里","并","使用","它","在","他们","来","之前","&"],
+            ["$","他们","喜欢","看见","我们","而且","他们","会","知道","我们","在做","什么","&"],
+            ["$","我","认为","这","可以","被","你","和","我","一起","使用","&"],
+            ["$","你","应该","做","它","因为","它","很好","而且","我们","可以","看见","结果","&"],
+            ["$","他","正在","学习","英语","以便","他","可以","使用","它","与","他们","交流","&"],
+            ["$","我们","知道","它","而且","我们","会","把","它","给","他们","如果","他们","需要","它","&"],
+            ["$","他们","想要","制作","它","而且","他们","可以","看见","它","是","如何","运作","的","&"],
+            ["$","我","知道","你","而且","你","知道","我","所以","我们","可以","一起","工作","&"]
+        ]
     def __getitem__(self, id):
-        return (self.X, self.Y)
+        return (self.X[id], self.Y[id])
         
     def __len__(self):
         return len(self.X)
@@ -233,10 +251,10 @@ class MyTransformer(torch.nn.Module):
         
         
 dataset = my_dataset()
-#model = MyTransformer()
-model = torch.load("model.pth", weights_only=False)
+model = MyTransformer()
+#model = torch.load("model.pth", weights_only=False)
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr = 0.0001)
+optimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
 
 def getget(stringlist):
     newone = []
@@ -244,21 +262,25 @@ def getget(stringlist):
         newone.append(w.index(i))
     return torch.tensor(newone)
 
-for i in range(0, 100):
-    total_loss = 0
-    output = model(dataset[0][0], dataset[0][1])
-    loss = criterion(output, getget(dataset[0][1]))
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-    print(f"epoch: {i}, loss: {loss}")
+for i in range(0, 10):
+    for j in range(0, len(dataset)):
+        total_loss = 0
+        output = model(dataset[j][0], dataset[j][1])
+        loss = criterion(output, getget(dataset[j][1]))
+        total_loss += loss
+        loss.backward()
+        optimizer.zero_grad()
+        optimizer.step()
+    
+        print(f"epoch: {i}, loss: {total_loss/len(dataset)}")
+
 torch.save(model, "model.pth")
 
 
 
-result = torch.nn.functional.softmax(model(dataset[0][0], dataset[0][1]), dim = 1)
-print(result.shape)
+result = torch.nn.functional.softmax(model(dataset[3][0], dataset[3][1]), dim = 1)
 indi = torch.argmax(result, dim = 1)
 print(indi)
-print(w[indi[0]],w[indi[1]],w[indi[2]],w[indi[3]])
+for i in indi:
+    print(w[i])
 
