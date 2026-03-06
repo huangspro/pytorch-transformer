@@ -96,8 +96,7 @@ class EDAttension(torch.nn.Module):
             v = self.V[i](x) 
             result.append(torch.nn.functional.softmax((q @ k.T)/DK, dim = 1) @ v)
         result = torch.hstack(result)
-        result = result @ self.output_mat
-        result = torch.nn.functional.softmax(result, dim = 1)
+        result = self.output_mat(result) 
         return result
 
 
