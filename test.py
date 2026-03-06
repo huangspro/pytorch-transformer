@@ -121,30 +121,30 @@ class my_dataset(torch.utils.data.Dataset):
     def __init__(self):
         self.X = [
             ["$","I","know","you","and","I","will","help","you","with","this","&"],
-            ["$","I","see","you","and","I","will","help","you","with","this","&"],
-            ["$","She","wants","to","see","it","and","I","can","make","it","for","her","&"],
-            ["$","We","will","go","there","and","use","it","before","they","come","&"],
-            ["$","They","like","to","see","us","and","they","will","know","what","we","do","&"],
-            ["$","I","think","this","can","be","used","by","you","and","me","together","&"],
-            ["$","You","should","do","it","because","it","is","good","and","we","can","see","results","&"],
-            ["$","He","is","learning","English","so","that","he","can","use","it","to","communicate","with","them","&"],
-            ["$","We","know","it","and","we","will","give","it","to","them","if","they","need","it","&"],
-            ["$","They","want","to","make","it","and","they","can","see","how","it","works","&"],
-            ["$","I","know","you","and","you","know","me","so","we","can","work","together","&"]
+            #["$","I","see","you","and","I","will","help","you","with","this","&"],
+            #["$","She","wants","to","see","it","and","I","can","make","it","for","her","&"],
+            #["$","We","will","go","there","and","use","it","before","they","come","&"],
+            #["$","They","like","to","see","us","and","they","will","know","what","we","do","&"],
+            #["$","I","think","this","can","be","used","by","you","and","me","together","&"],
+            #["$","You","should","do","it","because","it","is","good","and","we","can","see","results","&"],
+            #["$","He","is","learning","English","so","that","he","can","use","it","to","communicate","with","them","&"],
+            #["$","We","know","it","and","we","will","give","it","to","them","if","they","need","it","&"],
+            #["$","They","want","to","make","it","and","they","can","see","how","it","works","&"],
+            #["$","I","know","you","and","you","know","me","so","we","can","work","together","&"]
         ]
 
         self.Y = [
             ["$","我","知道","你","而且","我","会","用","这个","帮助","你","&"],
-            ["$","我","看见","你","而且","我","会","用","这个","帮助","你","&"],
-            ["$","她","想要","看","它","而且","我","可以","为","她","制作","它","&"],
-            ["$","我们","会","去","那里","并","使用","它","在","他们","来","之前","&"],
-            ["$","他们","喜欢","看见","我们","而且","他们","会","知道","我们","在做","什么","&"],
-            ["$","我","认为","这","可以","被","你","和","我","一起","使用","&"],
-            ["$","你","应该","做","它","因为","它","很好","而且","我们","可以","看见","结果","&"],
-            ["$","他","正在","学习","英语","以便","他","可以","使用","它","与","他们","交流","&"],
-            ["$","我们","知道","它","而且","我们","会","把","它","给","他们","如果","他们","需要","它","&"],
-            ["$","他们","想要","制作","它","而且","他们","可以","看见","它","是","如何","运作","的","&"],
-            ["$","我","知道","你","而且","你","知道","我","所以","我们","可以","一起","工作","&"]
+            #["$","我","看见","你","而且","我","会","用","这个","帮助","你","&"],
+            #["$","她","想要","看","它","而且","我","可以","为","她","制作","它","&"],
+            #["$","我们","会","去","那里","并","使用","它","在","他们","来","之前","&"],
+            #["$","他们","喜欢","看见","我们","而且","他们","会","知道","我们","在做","什么","&"],
+            #["$","我","认为","这","可以","被","你","和","我","一起","使用","&"],
+            #["$","你","应该","做","它","因为","它","很好","而且","我们","可以","看见","结果","&"],
+            #["$","他","正在","学习","英语","以便","他","可以","使用","它","与","他们","交流","&"],
+            #["$","我们","知道","它","而且","我们","会","把","它","给","他们","如果","他们","需要","它","&"],
+            #["$","他们","想要","制作","它","而且","他们","可以","看见","它","是","如何","运作","的","&"],
+            #["$","我","知道","你","而且","你","知道","我","所以","我们","可以","一起","工作","&"]
         ]
     def __getitem__(self, id):
         return (self.X[id], self.Y[id])
@@ -254,7 +254,7 @@ dataset = my_dataset()
 model = MyTransformer()
 #model = torch.load("model.pth", weights_only=False)
 criterion = torch.nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr = 0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr = 1e-5)
 
 def getget(stringlist):
     newone = []
@@ -274,13 +274,13 @@ for i in range(0, 10):
     
         print(f"epoch: {i}, loss: {total_loss/len(dataset)}")
 
-torch.save(model, "model.pth")
+#torch.save(model, "model.pth")
 
 
 
-result = torch.nn.functional.softmax(model(dataset[3][0], dataset[3][1]), dim = 1)
+result = torch.nn.functional.softmax(model(dataset[0][0], dataset[0][1]), dim = 1)
 indi = torch.argmax(result, dim = 1)
-print(indi)
+print(result)
 for i in indi:
     print(w[i])
 
