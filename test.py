@@ -81,21 +81,19 @@ class selfAttension(torch.nn.Module):
 class EDAttension(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        Head_K = [torch.randn(Embedding_Depth, int(Embedding_Depth/Multi_Head)) for i in range(Multi_Head)]
-        Head_Q = [torch.randn(Embedding_Depth, int(Embedding_Depth/Multi_Head)) for i in range(Multi_Head)]
-        Head_V = [torch.randn(Embedding_Depth, int(Embedding_Depth/Multi_Head)) for i in range(Multi_Head)]
-        self.K = torch.nn.Parameter(torch.stack(Head_K))
-        self.Q = torch.nn.Parameter(torch.stack(Head_Q))
-        self.V = torch.nn.Parameter(torch.stack(Head_V))
-        self.output_mat = torch.nn.Parameter(torch.randn(Embedding_Depth, Embedding_Depth))
+        self.K = [torch.Linear(Embedding_Depth, int(Embedding_Depth/Multi_Head)) for i in range(Multi_Head)]
+        self.Q = [torch.Linear(Embedding_Depth, int(Embedding_Depth/Multi_Head)) for i in range(Multi_Head)]
+        self.V = [torch.Linear(Embedding_Depth, int(Embedding_Depth/Multi_Head)) for i in range(Multi_Head)]
+        
+        self.output_mat = torch.Linear(Embedding_Depth, Embedding_Depth)
         
     def forward(self, x, y):
         result = []
         DK = torch.sqrt(torch.tensor(Embedding_Depth/Multi_Head))
         for i in range(0, Multi_Head):
-            k = x @ self.K[i]
-            q = y @ self.Q[i]
-            v = x @ self.V[i]
+            k = self.K[i](x)
+            q = self.Q[i](y) 
+            v = self.V[i](x) 
             result.append(torch.nn.functional.softmax((q @ k.T)/DK, dim = 1) @ v)
         result = torch.hstack(result)
         result = result @ self.output_mat
