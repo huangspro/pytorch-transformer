@@ -6,7 +6,7 @@ English: I you he her she him we eat go to in school talk
 '''
 #super parameter
 import pickle
-learning_rate = 1e-4
+learning_rate = 1e-2
 Embedding_Depth = 512
 Multi_Head = 8
 with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
@@ -176,7 +176,7 @@ def getget(stringlist):
         newone.append(w.index(i))
     return torch.tensor(newone)
 
-
+'''
 for i in range(0, 10):
     total_loss = 0
     for j in range(0, len(dataset)):
@@ -191,10 +191,10 @@ for i in range(0, 10):
 
     torch.save(model, "../model/model.pth")
     torch.save(optimizer.state_dict(), "../model/optimizer.pth")
+'''
 
-
-result = torch.nn.functional.softmax(model(dataset[1][0], dataset[1][1]), dim = 1)
-print(dataset[1][0])
+result = torch.nn.functional.softmax(model(dataset[100][0], dataset[100][1]), dim = 1)
+print(dataset[100][0])
 indi = torch.argmax(result, dim = 1)
 print(result)
 for i in indi:
