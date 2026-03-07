@@ -5,47 +5,41 @@ Embedding wordlist is within English and Chinese:
 English: I you he her she him we eat go to in school talk 
 '''
 #super parameter
+import pickle
+learning_rate = 1e-4
 Embedding_Depth = 512
 Multi_Head = 8
-w = [
-  "$", "&",
-  "I", "you", "he", "she", "we", "they", "it", "me", "us", "them", "her", "and",
-  "know", "like", "see", "want", "make", "take", "give", "use", "do", "can", "will",
-  "go", "come", "think", "be", "used", "by", "together", "should", "because", "is", "good", "results",
-  "learning", "English", "so", "that", "communicate", "how", "works", "before", "with", "for", "there", "this",
-  "我", "你", "他", "她", "我们", "他们", "它",
-  "知道", "喜欢", "看见", "想要", "制作", "拿", "给", "使用", "做", "可以", "会",
-  "去", "来", "认为", "是", "被", "一起", "应该", "因为", "很好", "结果", "正在", "学习",
-  "英语", "以便", "与", "交流", "把", "如果", "需要", "如何", "运作", "的", "所以", "工作",
-  "这个", "那里", "并",
-  "help", "She", "wants", "to", "We", "They", "what", "You", "He", "if", "need", "work",
-  "而且", "用", "帮助", "看", "为", "在", "之前", "在做", "什么", "这", "和"
-]
+with open("cmn.txt", 'r', encoding = 'utf-8') as f:
+    English = [i.strip().split('\t')[0] for i in f]
+with open("cmn.txt", 'r', encoding = 'utf-8') as f:
+    Chinese = [i.strip().split('\t')[1] for i in f]
+Chinese = Chinese[:200]
+English = English[:200]
+with open("w.pkl", 'rb') as f:
+    w = pickle.load(f)
 Word = len(w)
+
+
 
 import torch
 import torchvision
 import matplotlib.pyplot
 import os
+import math
 
-class Embedding(torch.nn.Module):
+class PositionalEmbedding(torch.nn.Module):
     def __init__(self):
         super().__init__()
-        self.wordlist = torch.nn.Parameter(torch.randn(len(w), Embedding_Depth))
-        
+        self.embedding = torch.nn.Embedding(len(w), Embedding_Depth)
+
     def forward(self, x):   #x is a vector of input sequence
-        output = []
-        #add all the vector
-        for i in range(0, len(x)):
-            output.append(self.wordlist[w.index(x[i])])
-        #positional encoding
         positional_matrix = torch.zeros(len(x), Embedding_Depth)
         for i in range(0, len(x)):
             for j in range(0, int((Embedding_Depth-1)/2)):
-                positional_matrix[i][2*j] = torch.sin(torch.tensor(i/10000**(2*j/Embedding_Depth))) 
-                positional_matrix[i][2*j+1] = torch.cos(torch.tensor(i/10000**(2*j/Embedding_Depth)))
-        #stack them into a tensor
-        return torch.stack(output) + positional_matrix
+                positional_matrix[i][2*j] = math.sin(i/10000**(2*j/Embedding_Depth)) 
+                positional_matrix[i][2*j+1] = math.cos(i/10000**(2*j/Embedding_Depth))
+        output = self.embedding(torch.tensor([w.index(i) for i in x])) + positional_matrix
+        return output
         
         
 class selfAttension(torch.nn.Module):
@@ -71,7 +65,6 @@ class selfAttension(torch.nn.Module):
                 result.append(torch.nn.functional.softmax((q @ k.T)/DK, dim = 1) @ v)
         result = torch.hstack(result)
         result = self.output_mat(result)
-        result = torch.nn.functional.softmax(result, dim = 1)
         return result
 
 
@@ -129,47 +122,21 @@ class decoder(torch.nn.Module):
 #===============================================================================================================================================
 class my_dataset(torch.utils.data.Dataset):
     def __init__(self):
-        self.X = [
-            ["$","I","know","you","and","I","will","help","you","with","this","&"],
-            ["$","I","see","you","and","I","will","help","you","with","this","&"],
-            ["$","She","wants","to","see","it","and","I","can","make","it","for","her","&"],
-            ["$","We","will","go","there","and","use","it","before","they","come","&"],
-            ["$","They","like","to","see","us","and","they","will","know","what","we","do","&"],
-            ["$","I","think","this","can","be","used","by","you","and","me","together","&"],
-            ["$","You","should","do","it","because","it","is","good","and","we","can","see","results","&"],
-            ["$","He","is","learning","English","so","that","he","can","use","it","to","communicate","with","them","&"],
-            ["$","We","know","it","and","we","will","give","it","to","them","if","they","need","it","&"],
-            ["$","They","want","to","make","it","and","they","can","see","how","it","works","&"],
-            ["$","I","know","you","and","you","know","me","so","we","can","work","together","&"]
-        ]
-
-        self.Y = [
-            ["$","我","知道","你","而且","我","会","用","这个","帮助","你","&"],
-            ["$","我","看见","你","而且","我","会","用","这个","帮助","你","&"],
-            ["$","她","想要","看","它","而且","我","可以","为","她","制作","它","&"],
-            ["$","我们","会","去","那里","并","使用","它","在","他们","来","之前","&"],
-            ["$","他们","喜欢","看见","我们","而且","他们","会","知道","我们","在做","什么","&"],
-            ["$","我","认为","这","可以","被","你","和","我","一起","使用","&"],
-            ["$","你","应该","做","它","因为","它","很好","而且","我们","可以","看见","结果","&"],
-            ["$","他","正在","学习","英语","以便","他","可以","使用","它","与","他们","交流","&"],
-            ["$","我们","知道","它","而且","我们","会","把","它","给","他们","如果","他们","需要","它","&"],
-            ["$","他们","想要","制作","它","而且","他们","可以","看见","它","是","如何","运作","的","&"],
-            ["$","我","知道","你","而且","你","知道","我","所以","我们","可以","一起","工作","&"]
-        ]
+        pass
     def __getitem__(self, id):
-        return (self.X[id], self.Y[id])
+        return ([i for i in Chinese[id]], ['begin'] + English[id].split(' '))
         
     def __len__(self):
-        return len(self.X)
+        return len(Chinese)
         
         
 class MyTransformer(torch.nn.Module):
     def __init__(self):
         super().__init__()
         
-        self.en_embedding = Embedding()
+        self.en_embedding = PositionalEmbedding()
         self.encoder = torch.nn.ModuleList([encoder() for i in range(0, 8)])
-        self.de_embedding = Embedding()
+        self.de_embedding = PositionalEmbedding()
         self.decoder = torch.nn.ModuleList([decoder() for i in range(0, 8)])
         self.cross = EDAttension()
         self.aftercross = torch.nn.ModuleList([encoder() for i in range(0, 8)])
@@ -194,11 +161,11 @@ criterion = torch.nn.CrossEntropyLoss()
 
 if os.path.exists("model.pth"):
     model = torch.load("model.pth", weights_only=False)
-    optimizer = torch.optim.Adam(model.parameters(), lr = 1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
     optimizer.load_state_dict(torch.load("optimizer.pth"))
 else:
     model = MyTransformer()
-    optimizer = torch.optim.Adam(model.parameters(), lr = 1e-2)
+    optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
 
 def getget(stringlist):
     newone = []
@@ -206,7 +173,7 @@ def getget(stringlist):
         newone.append(w.index(i))
     return torch.tensor(newone)
 
-for i in range(0, 50):
+for i in range(0, 10):
     total_loss = 0
     for j in range(0, len(dataset)):
         output = model(dataset[j][0], dataset[j][1])
@@ -215,14 +182,14 @@ for i in range(0, 50):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    
     print(f"epoch: {i}, loss: {total_loss/len(dataset)}")
 
     torch.save(model, "model.pth")
     torch.save(optimizer.state_dict(), "optimizer.pth")
 
 
-result = torch.nn.functional.softmax(model(dataset[0][0], dataset[0][1]), dim = 1)
+result = torch.nn.functional.softmax(model(dataset[1][0], dataset[1][1]), dim = 1)
+print(dataset[1][0])
 indi = torch.argmax(result, dim = 1)
 print(result)
 for i in indi:
