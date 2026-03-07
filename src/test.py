@@ -9,13 +9,13 @@ import pickle
 learning_rate = 1e-4
 Embedding_Depth = 512
 Multi_Head = 8
-with open("cmn.txt", 'r', encoding = 'utf-8') as f:
+with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
     English = [i.strip().split('\t')[0] for i in f]
-with open("cmn.txt", 'r', encoding = 'utf-8') as f:
+with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
     Chinese = [i.strip().split('\t')[1] for i in f]
 Chinese = Chinese[:200]
 English = English[:200]
-with open("w.pkl", 'rb') as f:
+with open("../data/w.pkl", 'rb') as f:
     w = pickle.load(f)
 Word = len(w)
 
@@ -26,6 +26,8 @@ import torchvision
 import matplotlib.pyplot
 import os
 import math
+
+device = torch.device("cuda")
 
 class PositionalEmbedding(torch.nn.Module):
     def __init__(self):
@@ -159,13 +161,14 @@ class MyTransformer(torch.nn.Module):
 dataset = my_dataset()
 criterion = torch.nn.CrossEntropyLoss()
 
-if os.path.exists("model.pth"):
-    model = torch.load("model.pth", weights_only=False)
+if os.path.exists("../model/model.pth"):
+    model = torch.load("../model/model.pth", weights_only=False)
     optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
-    optimizer.load_state_dict(torch.load("optimizer.pth"))
+    optimizer.load_state_dict(torch.load("../model/optimizer.pth"))
 else:
     model = MyTransformer()
     optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
+
 
 def getget(stringlist):
     newone = []
@@ -173,19 +176,21 @@ def getget(stringlist):
         newone.append(w.index(i))
     return torch.tensor(newone)
 
+
 for i in range(0, 10):
     total_loss = 0
     for j in range(0, len(dataset)):
         output = model(dataset[j][0], dataset[j][1])
         loss = criterion(output, getget(dataset[j][1]))
-        total_loss += loss
+        total_loss += loss.item()
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        
     print(f"epoch: {i}, loss: {total_loss/len(dataset)}")
 
-    torch.save(model, "model.pth")
-    torch.save(optimizer.state_dict(), "optimizer.pth")
+    torch.save(model, "../model/model.pth")
+    torch.save(optimizer.state_dict(), "../model/optimizer.pth")
 
 
 result = torch.nn.functional.softmax(model(dataset[1][0], dataset[1][1]), dim = 1)
