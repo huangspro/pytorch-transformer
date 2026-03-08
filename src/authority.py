@@ -236,6 +236,7 @@ for i in range(0, 50):
     torch.save(transformer, "../model/model.pth")
     torch.save(optimizer.state_dict(), "../model/optimizer.pth")
 '''
+'''
 ok = 0
 for x,y in loader:
     if ok < 10:
@@ -250,18 +251,21 @@ for x,y in loader:
     else:
         break
 '''
-y = torch.tensor([w.index('I')]).unsqueeze(0)
-x = my_dataset[12][0].unsqueeze(0)
-ok = "$ "
+
+y = torch.tensor([w.index('$')]).unsqueeze(0)
+x = my_dataset[20000][0].unsqueeze(0)
+testdata = '我想学习哈哈语言'
+x = torch.tensor([w.index(i) for i in testdata]).unsqueeze(0)
+ok = ['$']
 max = 0
 print(''.join([w[i.item()] for i in x[0] if  w[i.item()] != "嗨" and w[i.item()] != "$" and w[i.item()] != "&"]))
-while max < 100:
+while max < 10:
     x,y = x.to(device), y.to(device)
-    output = transformer(x, y)
-    result = ' '.join([w[torch.argmax(torch.nn.functional.softmax(output, dim = 0))] for i in output])
+    output = transformer(x, y)[0]
+    result = [w[torch.argmax(torch.nn.functional.softmax(i, dim = 0))] for i in output]
     print(ok)
-    ok += result[-1]
+    ok.append(result[-1])
     if '&' in result:
-        break
+        pass
     y = torch.tensor([w.index(i) for i in ok]).unsqueeze(0)
-    max += 1'''
+    max += 1
