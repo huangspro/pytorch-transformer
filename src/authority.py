@@ -6,6 +6,8 @@ import torch.utils.data as data
 import math
 import copy
 import os
+
+#数据集===================================================================================================
 with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
     English = [i.strip().split('\t')[0] for i in f]
 with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
@@ -21,7 +23,7 @@ w.append('$')
 w.append('&')
 Word = len(w)
 device = torch.device('cuda')
-# 超参数
+# 超参数===================================================================================================
 src_vocab_size = Word  # 源词汇表大小
 tgt_vocab_size = Word  # 目标词汇表大小
 d_model = 512  # 模型维度
@@ -32,6 +34,7 @@ max_seq_length = 100  # 最大序列长度
 dropout = 0.1  # Dropout 概率
 batch = 150
 
+#模型结构===================================================================================================
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_heads):
         super(MultiHeadAttention, self).__init__()
@@ -175,6 +178,7 @@ class Transformer(nn.Module):
         output = self.fc(dec_output)
         return output
 
+#数据集准备===================================================================================================
 class dataset(torch.utils.data.Dataset):
     def __init__(self):
         pass
@@ -183,9 +187,8 @@ class dataset(torch.utils.data.Dataset):
         return (torch.tensor([w.index(i) for i in Chinese[id]]), torch.tensor([w.index(i) for i in English[id].split(' ')]))
     def __len__(self):
         return len(Chinese)
-
+#padding用于将不同长度的句子长度统一化
 def collate_fn(batch):
-
     src_batch = []
     tgt_batch = []
 
@@ -198,12 +201,11 @@ def collate_fn(batch):
 
     return src_batch, tgt_batch
     
+#开始训练===================================================================================================  
 my_dataset = dataset()
 loader = torch.utils.data.DataLoader(my_dataset, shuffle = True, batch_size = batch,collate_fn=collate_fn)
-
-# 初始化模型
-
 criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+
 if os.path.exists("../model/model.pth"):
     transformer = torch.load("../model/model.pth", weights_only=False)
     transformer = transformer.to(device)
@@ -214,7 +216,6 @@ else:
     transformer = transformer.to(device)
     optimizer = optim.Adam(transformer.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
 
-'''
 # 训练循环
 transformer.train()
 for i in range(0, 50):
@@ -235,8 +236,8 @@ for i in range(0, 50):
 
     torch.save(transformer, "../model/model.pth")
     torch.save(optimizer.state_dict(), "../model/optimizer.pth")
-'''
-'''
+
+#测试模式1===================================================================================================
 ok = 0
 for x,y in loader:
     if ok < 10:
@@ -250,8 +251,8 @@ for x,y in loader:
         ok += 1
     else:
         break
-'''
 
+#测试模式2===================================================================================================
 y = torch.tensor([w.index('$')]).unsqueeze(0)
 x = my_dataset[20000][0].unsqueeze(0)
 testdata = '你们这些不懂事的人快点吃饱饭睡觉'

@@ -4,7 +4,7 @@ this file is for building a transformer with pytorch in the paper "Attention is 
 Embedding wordlist is within English and Chinese:
 English: I you he her she him we eat go to in school talk 
 '''
-#super parameter
+#super parameter and dataset===================================================================================================
 import pickle
 learning_rate = 1e-2
 Embedding_Depth = 512
@@ -20,7 +20,7 @@ with open("../data/w.pkl", 'rb') as f:
 Word = len(w)
 
 
-
+#model structure===================================================================================================
 import torch
 import torchvision
 import matplotlib.pyplot
@@ -120,18 +120,7 @@ class decoder(torch.nn.Module):
     def forward(self, x):
         x = self.ffn(self.attension(x) + x)
         return x
-        
-#===============================================================================================================================================
-class my_dataset(torch.utils.data.Dataset):
-    def __init__(self):
-        pass
-    def __getitem__(self, id):
-        return ([i for i in Chinese[id]], ['begin'] + English[id].split(' '))
-        
-    def __len__(self):
-        return len(Chinese)
-        
-        
+      
 class MyTransformer(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -156,8 +145,17 @@ class MyTransformer(torch.nn.Module):
             x = i(x)
         x = self.output(x)
         return x
+#prepare dataset===============================================================================================================================================
+class my_dataset(torch.utils.data.Dataset):
+    def __init__(self):
+        pass
+    def __getitem__(self, id):
+        return ([i for i in Chinese[id]], ['begin'] + English[id].split(' '))
         
-     
+    def __len__(self):
+        return len(Chinese)
+        
+#begin training===============================================================================================================================================
 dataset = my_dataset()
 criterion = torch.nn.CrossEntropyLoss()
 
@@ -169,14 +167,17 @@ else:
     model = MyTransformer()
     optimizer = torch.optim.Adam(model.parameters(), lr = learning_rate)
 
-
+#get the index from the target
 def getget(stringlist):
     newone = []
     for i in stringlist:
         newone.append(w.index(i))
     return torch.tensor(newone)
 
-'''
+# ! Warning: we do not use begin or end annotation here
+# ! Warning: we do not desert the first token of target and we do not desert the last token of the input
+# ! so the model cannot learn to predict the next token, but I am so lazy to fix the problem
+
 for i in range(0, 10):
     total_loss = 0
     for j in range(0, len(dataset)):
@@ -191,8 +192,8 @@ for i in range(0, 10):
 
     torch.save(model, "../model/model.pth")
     torch.save(optimizer.state_dict(), "../model/optimizer.pth")
-'''
 
+#test===============================================================================================================================================
 result = torch.nn.functional.softmax(model(dataset[100][0], dataset[100][1]), dim = 1)
 print(dataset[100][0])
 indi = torch.argmax(result, dim = 1)
