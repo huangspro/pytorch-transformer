@@ -254,18 +254,18 @@ for x,y in loader:
 
 y = torch.tensor([w.index('$')]).unsqueeze(0)
 x = my_dataset[20000][0].unsqueeze(0)
-testdata = '我想学习哈哈语言'
+testdata = '你们这些不懂事的人快点吃饱饭睡觉'
 x = torch.tensor([w.index(i) for i in testdata]).unsqueeze(0)
 ok = ['$']
 max = 0
 print(''.join([w[i.item()] for i in x[0] if  w[i.item()] != "嗨" and w[i.item()] != "$" and w[i.item()] != "&"]))
-while max < 10:
+while max < 1000:
     x,y = x.to(device), y.to(device)
     output = transformer(x, y)[0]
     result = [w[torch.argmax(torch.nn.functional.softmax(i, dim = 0))] for i in output]
     print(ok)
     ok.append(result[-1])
     if '&' in result:
-        pass
+        break
     y = torch.tensor([w.index(i) for i in ok]).unsqueeze(0)
     max += 1
