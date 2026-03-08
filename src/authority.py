@@ -5,17 +5,32 @@ import torch.optim as optim
 import torch.utils.data as data
 import math
 import copy
+import os
 with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
     English = [i.strip().split('\t')[0] for i in f]
 with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
     Chinese = [i.strip().split('\t')[1] for i in f]
-Chinese = Chinese[:200]
-English = English[:200]
+for i in range(len(Chinese)):
+    Chinese[i] = "$" + Chinese[i] + "&"
+for i in range(len(English)):
+    English[i] = "$ " + English[i] + " &"
+
 with open("../data/w.pkl", 'rb') as f:
     w = pickle.load(f)
+w.append('$')
+w.append('&')
 Word = len(w)
-
-
+device = torch.device('cuda')
+# 超参数
+src_vocab_size = Word  # 源词汇表大小
+tgt_vocab_size = Word  # 目标词汇表大小
+d_model = 512  # 模型维度
+num_heads = 8  # 注意力头数量
+num_layers = 6  # 编码器和解码器层数
+d_ff = 2048  # 前馈网络内层维度
+max_seq_length = 100  # 最大序列长度
+dropout = 0.1  # Dropout 概率
+batch = 150
 
 class MultiHeadAttention(nn.Module):
     def __init__(self, d_model, num_heads):
@@ -136,11 +151,12 @@ class Transformer(nn.Module):
 
     def generate_mask(self, src, tgt):
         src_mask = (src != 0).unsqueeze(1).unsqueeze(2)
-    
         tgt_mask = (tgt != 0).unsqueeze(1).unsqueeze(3)
         seq_length = tgt.size(1)
         nopeak_mask = (1 - torch.triu(torch.ones(1, seq_length, seq_length), diagonal=1)).bool()
-        tgt_mask = tgt_mask & nopeak_mask  # 合并填充掩码和未来信息掩码
+        tgt_mask = tgt_mask.to(device)
+        nopeak_mask = nopeak_mask.to(device)
+        tgt_mask = tgt_mask & nopeak_mask 
         return src_mask, tgt_mask
 
     def forward(self, src, tgt):
@@ -159,39 +175,93 @@ class Transformer(nn.Module):
         output = self.fc(dec_output)
         return output
 
-# 超参数
-src_vocab_size = Word  # 源词汇表大小
-tgt_vocab_size = Word  # 目标词汇表大小
-d_model = 512  # 模型维度
-num_heads = 8  # 注意力头数量
-num_layers = 6  # 编码器和解码器层数
-d_ff = 2048  # 前馈网络内层维度
-max_seq_length = 100  # 最大序列长度
-dropout = 0.1  # Dropout 概率
+class dataset(torch.utils.data.Dataset):
+    def __init__(self):
+        pass
+    def __getitem__(self, id):
+    
+        return (torch.tensor([w.index(i) for i in Chinese[id]]), torch.tensor([w.index(i) for i in English[id].split(' ')]))
+    def __len__(self):
+        return len(Chinese)
+
+def collate_fn(batch):
+
+    src_batch = []
+    tgt_batch = []
+
+    for src, tgt in batch:
+        src_batch.append(src)
+        tgt_batch.append(tgt)
+
+    src_batch = nn.utils.rnn.pad_sequence(src_batch, batch_first=True, padding_value=0)
+    tgt_batch = nn.utils.rnn.pad_sequence(tgt_batch, batch_first=True, padding_value=0)
+
+    return src_batch, tgt_batch
+    
+my_dataset = dataset()
+loader = torch.utils.data.DataLoader(my_dataset, shuffle = True, batch_size = batch,collate_fn=collate_fn)
 
 # 初始化模型
-transformer = Transformer(src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
 
-# 生成随机数据
-src_data = torch.randint(1, src_vocab_size, (64, max_seq_length))  # 源序列
-tgt_data = torch.randint(1, tgt_vocab_size, (64, max_seq_length))  # 目标序列
+criterion = torch.nn.CrossEntropyLoss(ignore_index=0)
+if os.path.exists("../model/model.pth"):
+    transformer = torch.load("../model/model.pth", weights_only=False)
+    transformer = transformer.to(device)
+    optimizer = optim.Adam(transformer.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
+    optimizer.load_state_dict(torch.load("../model/optimizer.pth"))
+else:
+    transformer = Transformer(src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
+    transformer = transformer.to(device)
+    optimizer = optim.Adam(transformer.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
 
-# 定义损失函数和优化器
-criterion = nn.CrossEntropyLoss(ignore_index=0)  # 忽略填充部分的损失
-optimizer = optim.Adam(transformer.parameters(), lr=0.0001, betas=(0.9, 0.98), eps=1e-9)
-
+'''
 # 训练循环
 transformer.train()
-for epoch in range(100):
-    optimizer.zero_grad()  # 清空梯度，防止累积
-    
-    output = transformer(src_data, tgt_data[:, :-1])  
-    
-    loss = criterion(
-        output.contiguous().view(-1, tgt_vocab_size), 
-        tgt_data[:, 1:].contiguous().view(-1)
-    )
-    
-    loss.backward()        
-    optimizer.step()      
-    print(f"Epoch: {epoch+1}, Loss: {loss.item()}")
+for i in range(0, 50):
+    total_loss = 0
+    progress = 0
+    for x,y in loader:
+        x,y = x.to(device), y.to(device)
+        output = transformer(x, y[:, :-1])
+        loss = criterion(output.contiguous().view(-1, tgt_vocab_size), y[:, 1:].contiguous().view(-1))
+        total_loss += loss.item()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        progress += 1
+        if progress%10 == 0:
+            print("total: ", Word/batch, "Now: ", progress)
+    print(f"epoch: {i}, loss: {total_loss/len(my_dataset)}")
+
+    torch.save(transformer, "../model/model.pth")
+    torch.save(optimizer.state_dict(), "../model/optimizer.pth")
+'''
+ok = 0
+for x,y in loader:
+    if ok < 10:
+        x,y = x.to(device), y.to(device)
+        output = transformer(x, y).detach()
+        output = output[0]
+        
+        print(''.join([w[i.item()] for i in x[0] if  w[i.item()] != "嗨" and w[i.item()] != "$" and w[i.item()] != "&"]))
+        print(' '.join([w[torch.argmax(torch.nn.functional.softmax(i, dim = 0))] for i in output if w[torch.argmax(torch.nn.functional.softmax(i, dim = 0))] != '&']))
+            
+        ok += 1
+    else:
+        break
+'''
+y = torch.tensor([w.index('I')]).unsqueeze(0)
+x = my_dataset[12][0].unsqueeze(0)
+ok = "$ "
+max = 0
+print(''.join([w[i.item()] for i in x[0] if  w[i.item()] != "嗨" and w[i.item()] != "$" and w[i.item()] != "&"]))
+while max < 100:
+    x,y = x.to(device), y.to(device)
+    output = transformer(x, y)
+    result = ' '.join([w[torch.argmax(torch.nn.functional.softmax(output, dim = 0))] for i in output])
+    print(ok)
+    ok += result[-1]
+    if '&' in result:
+        break
+    y = torch.tensor([w.index(i) for i in ok]).unsqueeze(0)
+    max += 1'''
