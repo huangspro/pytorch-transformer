@@ -3,10 +3,11 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
+import matplotlib.pyplot
 import math
 import copy
 import os
-
+import random
 #数据集===================================================================================================
 with open("../data/cmn.txt", 'r', encoding = 'utf-8') as f:
     English = [i.strip().split('\t')[0] for i in f]
@@ -183,8 +184,10 @@ class dataset(torch.utils.data.Dataset):
     def __init__(self):
         pass
     def __getitem__(self, id):
-    
-        return (torch.tensor([w.index(i) for i in Chinese[id]]), torch.tensor([w.index(i) for i in English[id].split(' ')]))
+        if(random.random() >0.5):
+            return (torch.tensor([w.index(i) for i in English[id].split(' ')]), torch.tensor([w.index(i) for i in Chinese[id]]))
+        else:
+            return (torch.tensor([w.index(i) for i in Chinese[id]]), torch.tensor([w.index(i) for i in English[id].split(' ')]))
     def __len__(self):
         return len(Chinese)
 #padding用于将不同长度的句子长度统一化
@@ -214,11 +217,18 @@ if os.path.exists("../model/model.pth"):
 else:
     transformer = Transformer(src_vocab_size, tgt_vocab_size, d_model, num_heads, num_layers, d_ff, max_seq_length, dropout)
     transformer = transformer.to(device)
-    optimizer = optim.Adam(transformer.parameters(), lr=0.001, betas=(0.9, 0.98), eps=1e-9)
+    optimizer = optim.Adam(transformer.parameters(), lr=0.1, betas=(0.9, 0.98), eps=1e-9)
 
-# 训练循环
+
+
+fig, ax = matplotlib.pyplot.subplots(1, 2)
+matplotlib.pyplot.ion()
+x_data, y_data = [], []
+
+
 transformer.train()
-for i in range(0, 50):
+for i in range(0, 0):
+    x_data.append(i)
     total_loss = 0
     progress = 0
     for x,y in loader:
@@ -230,14 +240,25 @@ for i in range(0, 50):
         loss.backward()
         optimizer.step()
         progress += 1
+        ax[0].clear()
+        ax[0].bar([0], [progress])
+        ax[0].set_ylim(top = len(Chinese)/batch)
+        matplotlib.pyplot.pause(0.001)
         if progress%10 == 0:
-            print("total: ", Word/batch, "Now: ", progress)
+            print("total: ", len(Chinese)/batch, "Now: ", progress)
     print(f"epoch: {i}, loss: {total_loss/len(my_dataset)}")
-
+    y_data.append(total_loss/len(my_dataset))
+    ax[1].clear()
+    ax[1].plot(x_data, y_data, 'b-o')
+    matplotlib.pyplot.pause(0.001)
+    
     torch.save(transformer, "../model/model.pth")
     torch.save(optimizer.state_dict(), "../model/optimizer.pth")
 
+matplotlib.pyplot.ioff()
+matplotlib.pyplot.show()
 #测试模式1===================================================================================================
+
 ok = 0
 for x,y in loader:
     if ok < 10:
@@ -255,7 +276,7 @@ for x,y in loader:
 #测试模式2===================================================================================================
 y = torch.tensor([w.index('$')]).unsqueeze(0)
 x = my_dataset[20000][0].unsqueeze(0)
-testdata = '你们这些不懂事的人快点吃饱饭睡觉'
+testdata = 'hello how are you'
 x = torch.tensor([w.index(i) for i in testdata]).unsqueeze(0)
 ok = ['$']
 max = 0
